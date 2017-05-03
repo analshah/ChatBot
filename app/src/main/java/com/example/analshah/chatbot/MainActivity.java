@@ -48,9 +48,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FirebaseAuth firebaseAuth;
     private String email;
     private String password;
-    private DatabaseReference mFirebaseDatabase;
-    private FirebaseDatabase mFirebaseInstance;
-    private String userId;
+
 
 
 
@@ -61,23 +59,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
 
-        mFirebaseInstance=FirebaseDatabase.getInstance();
-        mFirebaseDatabase=mFirebaseInstance.getReference("user");
-        mFirebaseInstance.getReference("app_name").setValue("RealTimeData");
-
-        mFirebaseInstance.getReference("app_name").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-
-                Log.e(TAG, "App title updated");
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-                Log.e(TAG, "Failed to read app title value.",databaseError.toException());
-            }
-        });
 
 
         firebaseAuth= FirebaseAuth.getInstance();
@@ -112,11 +93,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         email = editTextEmail.getText().toString().trim();
         password  = editTextPassword.getText().toString().trim();
 
+
         //checking if email and passwords are empty
 
-        if(TextUtils.isEmpty(userId)){
-            createUser(email);
-        }
+
         if(TextUtils.isEmpty(email)){
             Toast.makeText(this,"Please enter email",Toast.LENGTH_LONG).show();
             return;
@@ -157,41 +137,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    private void createUser(String email) {
 
-        if (TextUtils.isEmpty(userId)) {
-            userId = mFirebaseDatabase.push().getKey();
-        }
 
-        LoginDetail login = new LoginDetail(email);
-
-        mFirebaseDatabase.child(userId).setValue(login);
-
-        addUserChangeListener();
-    }
-
-    private void addUserChangeListener() {
-
-        mFirebaseDatabase.child(userId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                LoginDetail Login = dataSnapshot.getValue(LoginDetail.class);
-
-                // Check for null
-                if (Login == null) {
-                    Log.e(TAG, "User data is null!");
-                    return;
-                }
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError error) {
-                // Failed to read value
-                Log.e(TAG, "Failed to read user", error.toException());
-            }
-        });
-    }
 
     @Override
     public void onClick(View view) {

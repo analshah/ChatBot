@@ -8,6 +8,8 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -18,6 +20,11 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
@@ -26,9 +33,11 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 
 public class ProfileActivity extends AppCompatActivity implements View.OnClickListener {
+    private static final String TAG = "imagess";
     private FirebaseAuth firebaseAuth;
 
     //view objects
@@ -42,6 +51,12 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
     private String filename;
     private Uri filedata;
     private String pathfile;
+    private DatabaseReference mFirebaseDatabase;
+    private FirebaseDatabase mFirebaseInstance;
+    private String imageId;
+    private FirebaseUser user;
+    private  Uri fileuri;
+
 
 
     @Override
@@ -58,6 +73,27 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
         choose.setOnClickListener(this);
         upload.setOnClickListener(this);
         download.setOnClickListener(this);
+
+        mFirebaseInstance=FirebaseDatabase.getInstance();
+        mFirebaseDatabase=mFirebaseInstance.getReference("ImagesValues");
+
+        mFirebaseInstance.getReference("app_name").setValue("ChatBot");
+
+
+        mFirebaseInstance.getReference("app_name").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+
+                Log.e(TAG, "App title updated");
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+                Log.e(TAG, "Failed to read app title value.",databaseError.toException());
+            }
+        });
+
         firebaseAuth =FirebaseAuth.getInstance();
         if(firebaseAuth.getCurrentUser() == null) {
             //closing this activity
@@ -87,6 +123,7 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
             filepath = data.getData();
             filedata=data.getData();
             pathfile=filedata.getPath();
+
             file=new File(pathfile);
 
             filename =file.getName();
@@ -100,8 +137,19 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
         }
     }
 
-    private void uploadimage()
+    private void uploadimage(String imagename ,String imageid)
     {
+
+        if (TextUtils.isEmpty(imageId)) {
+            imageId = mFirebaseDatabase.push().getKey();
+
+        }
+        user=FirebaseAuth.getInstance().getCurrentUser();
+        fileuri=Uri.fromFile(new File(pathfile));
+        ImageDetail imagedetail=new ImageDetail(imagename,imageid,user.getUid(),fileuri.toString());
+        mFirebaseDatabase.child(imageId).setValue(imagedetail);
+        addUserChangeListener();
+
         StorageReference riversRef = mStorageRef.child("picsss/"+ filename);
 
         if(filepath != null) {
@@ -136,6 +184,29 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
             });
         }
 
+    }
+
+    private void addUserChangeListener() {
+
+        mFirebaseDatabase.child(imageId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                ImageDetail image = dataSnapshot.getValue(ImageDetail.class);
+
+                // Check for null
+                if (image == null) {
+                    Log.e(TAG, "User data is null!");
+                    return;
+                }
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Log.e(TAG, "Failed to read user", error.toException());
+            }
+        });
     }
 
     private void downloadimage()
@@ -194,7 +265,8 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
         }
          if(view == upload)
         {
-            uploadimage();
+            String imageid=mFirebaseDatabase.push().getKey();
+            uploadimage(filename,imageid);
         }
         if(view == download)
         {
