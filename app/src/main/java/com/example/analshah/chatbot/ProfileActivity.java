@@ -3,6 +3,7 @@ package com.example.analshah.chatbot;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
@@ -20,6 +21,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -35,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.List;
 
 public class ProfileActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "imagess";
@@ -148,6 +151,35 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
         fileuri=Uri.fromFile(new File(pathfile));
         ImageDetail imagedetail=new ImageDetail(imagename,imageid,user.getUid(),fileuri.toString());
         mFirebaseDatabase.child(imageId).setValue(imagedetail);
+        mFirebaseDatabase.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
+                Log.e(TAG," "+s);
+                Log.e("helloo"," "+dataSnapshot);
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
         addUserChangeListener();
 
         StorageReference riversRef = mStorageRef.child("picsss/"+ filename);
@@ -211,40 +243,39 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
 
     private void downloadimage()
     {
-        StorageReference riversRef = mStorageRef.child("picsss/"+ filename);
+        //final StorageReference riversRef = mStorageRef.child("picsss/"+ filename);
 
-        if(filepath != null) {
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        StorageReference storageRef = storage.getReferenceFromUrl("gs://chatbot-8a0e4.appspot.com").child("picsss/");
 
-            try {
-                File localFile = File.createTempFile("images", "jpg");
-                riversRef.getFile(localFile)
-                        .addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
-                        // Local temp file has been created
+        List<FileDownloadTask> data= storageRef.getActiveDownloadTasks();
+        Log.e("asd",""+data);
 
-                        Bitmap bitmap = null;
-                        try {
-                            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), filepath);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        imageView.setImageBitmap(bitmap);
-                        Toast.makeText(getApplicationContext(),"file downloaded",Toast.LENGTH_SHORT).show();
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        // Handle any errors
-                        Toast.makeText(getApplicationContext(),exception.getMessage(),Toast.LENGTH_SHORT).show();
-                    }
-                });
+//        if(filepath != null) {
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                final File localFile = File.createTempFile("images", "jpg");
+//                storageRef.getActiveDownloadTasks()getFile(localFile)
+//                        .addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+//                    @Override
+//                    public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+//                        // Local temp file has been created
+//                        Bitmap bitmap = BitmapFactory.decodeFile(localFile.getAbsolutePath());
+//                        imageView.setImageBitmap(bitmap);
+//                        Toast.makeText(getApplicationContext(),"file downloaded",Toast.LENGTH_SHORT).show();
+//                    }
+//                }).addOnFailureListener(new OnFailureListener() {
+//                    @Override
+//                    public void onFailure(@NonNull Exception exception) {
+//                        // Handle any errors
+//                        Toast.makeText(getApplicationContext(),exception.getMessage(),Toast.LENGTH_SHORT).show();
+//                    }
+//                });
 
-        }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
 
     }
     @Override
